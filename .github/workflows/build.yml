@@ -17,6 +17,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Make the icons and the ring sound
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq librsvg2-bin ffmpeg >/dev/null
+          python3 tools/make_assets.py
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'

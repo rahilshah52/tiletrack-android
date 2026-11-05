@@ -1,6 +1,11 @@
 plugins {
     id 'com.android.application'
-    id 'com.google.gms.google-services'
+}
+// Firebase settings (app/google-services.json from the Firebase project). Without the file the app still builds, but gets no alerts.
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+} else {
+    logger.warn('app/google-services.json is missing: this build will not receive alerts.')
 }
 
 // Signing: the GitHub build gets the existing TileTrack key from the repository's secrets, so this app

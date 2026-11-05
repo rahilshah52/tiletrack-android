@@ -8,3 +8,7 @@ local.properties
 *.aab
 .idea/
 *.iml
+# made by tools/make_assets.py during the build
+app/src/main/res/mipmap-*dpi/
+app/src/main/res/drawable*/
+app/src/main/res/raw/
