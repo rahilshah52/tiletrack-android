@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "920833985190",
+    "project_id": "tiletrack-3662d",
+    "storage_bucket": "tiletrack-3662d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:920833985190:android:573be71c02749a41c54267",
+        "android_client_info": {
+          "package_name": "com.uniglobe.tilestock"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4oXwhO9b_6T55ypjL96SM3uAHUQhc2GE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
