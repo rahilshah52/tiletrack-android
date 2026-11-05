@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+}
+
+// Signing: the GitHub build gets the existing TileTrack key from the repository's secrets, so this app
+// installs as an update over the TileTrack app already on the phones (same package name, same key).
+def keystoreFile = System.getenv('KEYSTORE_FILE')
+
+android {
+    namespace 'com.uniglobe.tilestock'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.uniglobe.tilestock'
+        minSdk 24
+        targetSdk 35
+        versionCode 3
+        versionName '3.0'
+        // The website: the app opens it full screen (Trusted Web Activity) and adds ?apk=<versionCode>
+        resValue 'string', 'siteHost', 'stock.uniglobelifestyles.com'
+        resValue 'string', 'siteUrl', 'https://stock.uniglobelifestyles.com/'
+    }
+
+    signingConfigs {
+        release {
+            if (keystoreFile) {
+                storeFile file(keystoreFile)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS') ?: 'tilestock'
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig keystoreFile ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+    implementation platform('com.google.firebase:firebase-bom:33.5.1')
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'androidx.core:core:1.13.1'
+}

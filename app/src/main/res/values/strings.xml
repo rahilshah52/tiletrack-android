@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appName">TileTrack</string>
+    <string name="launcherName">TileTrack</string>
+    <string name="providerAuthority">com.uniglobe.tilestock.fileprovider</string>
+    <string name="assetStatements">[{ \"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": { \"namespace\": \"web\", \"site\": \"https://stock.uniglobelifestyles.com\" } }]</string>
+    <string name="channelRing">New order ring</string>
+    <string name="channelRingText">Rings for 10 seconds when a new order is placed.</string>
+    <string name="channelAlerts">Order alerts</string>
+    <string name="channelAlertsText">Order changed, sent, delivered and other TileTrack alerts.</string>
+</resources>
