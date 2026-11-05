@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+permissions:
+  contents: write   # to publish the APK as a release
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -52,8 +55,23 @@ jobs:
           grep -qi "SHA-256 digest: efbc5ff66318fc00772992d51ad5bc7bae0ac41f7a1a956e1c907f1892e198c4" certs.txt \
             || { echo "::error::Wrong signing key: this APK would not install over TileTrack."; exit 1; }
 
-      - name: Name the file
-        run: cp app/build/outputs/apk/release/*.apk TileTrack.apk
+      - name: Name the file and show what is inside
+        run: |
+          cp app/build/outputs/apk/release/*.apk TileTrack.apk
+          AAPT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2
+          "$AAPT" dump badging TileTrack.apk | grep -E "^package|sdkVersion|uses-permission|launchable" || true
+          unzip -l TileTrack.apk | grep -E "res/raw|AndroidManifest" || true
+          sha256sum TileTrack.apk
+
+      # Direct download link: https://github.com/<owner>/<repo>/releases/latest/download/TileTrack.apk
+      - name: Publish as the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SIGNED=$([ -n "$KEYSTORE_FILE" ] && echo "signed with the TileTrack key" || echo "TEST build, not signed with the TileTrack key")
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create latest TileTrack.apk --title "TileTrack Android app (build ${{ github.run_number }})" \
+            --notes "Built from ${{ github.sha }} — $SIGNED." --latest
 
       - uses: actions/upload-artifact@v4
         with:
