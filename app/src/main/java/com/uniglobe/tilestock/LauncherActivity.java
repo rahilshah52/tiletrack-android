@@ -64,6 +64,9 @@ public class LauncherActivity extends com.google.androidbrowserhelper.trusted.La
         if (launched || isFinishing()) return;
         launched = true;
         handler.removeCallbacksAndMessages(null);
+        // At work and tracked (e.g. the phone restarted, or Android closed the recording): carry on.
+        // The recording asks the server at once and stops by itself if the person is not at work.
+        if (Tracker.tracked(this) && Tracker.onDuty(this)) Tracker.start(this);
         launchTwa();
     }
 
@@ -73,6 +76,7 @@ public class LauncherActivity extends com.google.androidbrowserhelper.trusted.La
         Uri.Builder b = uri.buildUpon().appendQueryParameter("apk", String.valueOf(BuildConfig.VERSION_CODE));
         String token = Alerts.token(this);
         if (token != null && !token.isEmpty()) b.appendQueryParameter("ntok", token);
+        b.appendQueryParameter("nsec", Tracker.secret(this));   // lets this app send on-duty locations for the person signed in
         return b.build();
     }
 }

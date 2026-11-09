@@ -8,4 +8,16 @@
     <string name="channelRingText">Rings for 10 seconds when a new order is placed.</string>
     <string name="channelAlerts">Order alerts</string>
     <string name="channelAlertsText">Order changed, sent, delivered and other TileTrack alerts.</string>
+    <string name="channelTracking">Route while at work</string>
+    <string name="channelTrackingText">Shown while TileTrack records your route between start and finish of work.</string>
+    <string name="trackingTitle">TileTrack: at work</string>
+    <string name="trackingText">Recording your route until you finish work.</string>
+    <string name="allowLocationTitle">Allow location for TileTrack</string>
+    <string name="allowLocationShort">Your owner asked TileTrack to record your route while you are at work. Tap to allow location.</string>
+    <string name="allowLocationText">Your owner asked TileTrack to record your route while you are at work (only between Start work and Finish work). Please allow location on the next screen.</string>
+    <string name="allowAllTimeTitle">Keep recording when the phone is locked</string>
+    <string name="allowAllTimeText">On the next screen choose \"%1$s\" for location. Otherwise the route stops when the screen is off. TileTrack records only while you are at work.</string>
+    <string name="allowAllTime">Allow all the time</string>
+    <string name="next">Next</string>
+    <string name="notNow">Not now</string>
 </resources>

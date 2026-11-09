@@ -20,8 +20,8 @@ android {
         applicationId 'com.uniglobe.tilestock'
         minSdk 24
         targetSdk 35
-        versionCode 3
-        versionName '3.0'
+        versionCode 4
+        versionName '3.1'
         // The website: the app opens it full screen (Trusted Web Activity) and adds ?apk=<versionCode>
         resValue 'string', 'siteHost', 'stock.uniglobelifestyles.com'
         resValue 'string', 'siteUrl', 'https://stock.uniglobelifestyles.com/'
@@ -60,4 +60,5 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.5.1')
     implementation 'com.google.firebase:firebase-messaging'
     implementation 'androidx.core:core:1.13.1'
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
 }

@@ -15,7 +15,9 @@ public class AlertService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage message) {
         Map<String, String> d = message.getData();
-        if (d == null || !"alert".equals(d.get("type"))) return;
+        if (d == null) return;
+        if ("track".equals(d.get("type"))) { Tracker.fromServer(this, "1".equals(d.get("on")), d.get("tracked")); return; }
+        if (!"alert".equals(d.get("type"))) return;
         Alerts.show(this, d);
     }
 }
