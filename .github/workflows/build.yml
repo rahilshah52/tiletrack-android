@@ -43,7 +43,8 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: tilestock
-        run: gradle :app:assembleRelease --no-daemon --stacktrace
+        # assembleRelease = the .apk people sideload; bundleRelease = the .aab you upload to the Play Store.
+        run: gradle :app:assembleRelease :app:bundleRelease --no-daemon --stacktrace
 
       # Must be signed with the same key as the installed app, otherwise phones refuse the update.
       - name: Check the signing key
@@ -55,26 +56,32 @@ jobs:
           grep -qi "SHA-256 digest: efbc5ff66318fc00772992d51ad5bc7bae0ac41f7a1a956e1c907f1892e198c4" certs.txt \
             || { echo "::error::Wrong signing key: this APK would not install over TileTrack."; exit 1; }
 
-      - name: Name the file and show what is inside
+      - name: Name the files and show what is inside
         run: |
           cp app/build/outputs/apk/release/*.apk TileTrack.apk
+          cp app/build/outputs/bundle/release/*.aab TileTrack.aab 2>/dev/null || true
           AAPT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2
           "$AAPT" dump badging TileTrack.apk | grep -E "^package|sdkVersion|uses-permission|launchable" || true
           unzip -l TileTrack.apk | grep -E "res/raw|AndroidManifest" || true
           sha256sum TileTrack.apk
+          ls -la TileTrack.aab 2>/dev/null && echo "App Bundle ready for the Play Store." || echo "::warning::No .aab produced."
 
       # Direct download link: https://github.com/<owner>/<repo>/releases/latest/download/TileTrack.apk
+      # The .aab (TileTrack.aab) on the same release is the file to upload to the Play Store.
       - name: Publish as the latest release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           SIGNED=$([ -n "$KEYSTORE_FILE" ] && echo "signed with the TileTrack key" || echo "TEST build, not signed with the TileTrack key")
           gh release delete latest --yes --cleanup-tag 2>/dev/null || true
-          gh release create latest TileTrack.apk --title "TileTrack Android app (build ${{ github.run_number }})" \
-            --notes "Built from ${{ github.sha }} — $SIGNED." --latest
+          FILES="TileTrack.apk"; [ -f TileTrack.aab ] && FILES="$FILES TileTrack.aab"
+          gh release create latest $FILES --title "TileTrack Android app (build ${{ github.run_number }})" \
+            --notes "Built from ${{ github.sha }} — $SIGNED. .apk = sideload/update; .aab = Play Store upload." --latest
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TileTrack-apk
-          path: TileTrack.apk
+          name: TileTrack-app
+          path: |
+            TileTrack.apk
+            TileTrack.aab
           retention-days: 30
