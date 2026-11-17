@@ -20,8 +20,8 @@ android {
         applicationId 'com.uniglobe.tilestock'
         minSdk 24
         targetSdk 35
-        versionCode 4
-        versionName '3.1'
+        versionCode 5
+        versionName '3.2'
         // The website: the app opens it full screen (Trusted Web Activity) and adds ?apk=<versionCode>
         resValue 'string', 'siteHost', 'stock.uniglobelifestyles.com'
         resValue 'string', 'siteUrl', 'https://stock.uniglobelifestyles.com/'

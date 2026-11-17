@@ -1,6 +1,7 @@
 package com.uniglobe.tilestock;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -11,39 +12,71 @@ import android.os.Looper;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 /**
- * Opens the TileTrack website full screen (as before), after:
- *  1. asking once for permission to show notifications (Android 13+), and
- *  2. getting this phone's Firebase alert address, which is handed to the website as ?ntok=...
- *     The website then tells the server, and alerts (with the new-order ring) come even when the app is closed.
+ * Opens the TileTrack website full screen (as before). On the very first launch it now asks, one tap each,
+ * for everything the app needs so nobody has to dig through phone settings later:
+ *   1. notifications (Android 13+),
+ *   2. location while using the app, then
+ *   3. "Allow all the time", so the on-duty route keeps recording when the app is closed.
+ * (On Android 11+ Android itself shows the "all the time" choice on its own location screen — that is the one
+ *  step no app can turn into a plain in-app tap.) Then it fetches this phone's Firebase alert address and launches.
  */
 public class LauncherActivity extends com.google.androidbrowserhelper.trusted.LauncherActivity {
-    private static final int ASK_NOTIFY = 41;
+    private static final int ASK_START = 41, ASK_BG = 42;
+    private static final int DIALOG_THEME = android.R.style.Theme_DeviceDefault_Light_Dialog_Alert;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean launched = false;
 
     @Override
     protected boolean shouldLaunchImmediately() {
-        return false;   // first the permission and the alert address, then launchTwa()
+        return false;   // first the permissions and the alert address, then launchTwa()
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (isFinishing()) return;
-        if (Build.VERSION.SDK_INT >= 33
-                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-                && !Alerts.prefs(this).getBoolean("askedNotify", false)) {
-            Alerts.prefs(this).edit().putBoolean("askedNotify", true).apply();
-            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, ASK_NOTIFY);
+        if (!Alerts.prefs(this).getBoolean("onboardedPerms", false)) {
+            Alerts.prefs(this).edit().putBoolean("onboardedPerms", true).apply();
+            askStartupPermissions();
         } else {
             getAddressThenLaunch();
         }
     }
 
+    /** First launch: ask for notifications and location together — each a single tap, no digging in settings. */
+    private void askStartupPermissions() {
+        java.util.ArrayList<String> ask = new java.util.ArrayList<>();
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+            ask.add(Manifest.permission.POST_NOTIFICATIONS);
+        if (!Tracker.hasLocation(this)) {
+            ask.add(Manifest.permission.ACCESS_FINE_LOCATION);
+            ask.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+        if (ask.isEmpty()) { afterForeground(); return; }
+        requestPermissions(ask.toArray(new String[0]), ASK_START);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
-        if (requestCode == ASK_NOTIFY) getAddressThenLaunch();
+        if (requestCode == ASK_START) afterForeground();
+        else if (requestCode == ASK_BG) getAddressThenLaunch();
+    }
+
+    /** Location granted while-using: now ask for "Allow all the time" so the route keeps recording with the app closed. */
+    private void afterForeground() {
+        if (Tracker.hasLocation(this) && !Tracker.hasBackground(this) && Build.VERSION.SDK_INT >= 29) {
+            CharSequence label = Build.VERSION.SDK_INT >= 30 ? getPackageManager().getBackgroundPermissionOptionLabel() : getString(R.string.allowAllTime);
+            new AlertDialog.Builder(this, DIALOG_THEME)
+                    .setTitle(R.string.allowAllTimeTitle)
+                    .setMessage(getString(R.string.allowAllTimeText, label))
+                    .setCancelable(false)
+                    .setPositiveButton(R.string.next, (x, y) -> requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, ASK_BG))
+                    .setNegativeButton(R.string.notNow, (x, y) -> getAddressThenLaunch())
+                    .show();
+        } else {
+            getAddressThenLaunch();
+        }
     }
 
     private void getAddressThenLaunch() {
