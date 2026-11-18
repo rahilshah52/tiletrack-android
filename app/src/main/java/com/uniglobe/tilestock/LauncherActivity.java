@@ -1,28 +1,31 @@
 package com.uniglobe.tilestock;
 
 import android.Manifest;
-import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.provider.Settings;
 
 import com.google.firebase.messaging.FirebaseMessaging;
 
 /**
- * Opens the TileTrack website full screen (as before). On the very first launch it now asks, one tap each,
- * for everything the app needs so nobody has to dig through phone settings later:
+ * Opens the TileTrack website full screen. On the very first launch it asks, one tap each and WITHOUT ever sending
+ * anyone into phone Settings, for everything the app needs:
  *   1. notifications (Android 13+),
- *   2. location while using the app, then
- *   3. "Allow all the time", so the on-duty route keeps recording when the app is closed.
- * (On Android 11+ Android itself shows the "all the time" choice on its own location screen — that is the one
- *  step no app can turn into a plain in-app tap.) Then it fetches this phone's Firebase alert address and launches.
+ *   2. location "while using the app",
+ *   3. permission to keep running in the background (a single battery dialog).
+ * Location recording works through the whole shift (even with the app closed or the phone locked) on the
+ * "while using" grant, because the foreground service is started when the person clocks in. "Allow all the time"
+ * is deliberately NOT asked here: Android 11+ only lets that be chosen on its own settings screen, and it is not
+ * needed for on-shift tracking.
  */
 public class LauncherActivity extends com.google.androidbrowserhelper.trusted.LauncherActivity {
-    private static final int ASK_START = 41, ASK_BG = 42;
-    private static final int DIALOG_THEME = android.R.style.Theme_DeviceDefault_Light_Dialog_Alert;
+    private static final int ASK_START = 41, REQ_BATTERY = 61;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean launched = false;
 
@@ -35,15 +38,15 @@ public class LauncherActivity extends com.google.androidbrowserhelper.trusted.La
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (isFinishing()) return;
-        if (!Alerts.prefs(this).getBoolean("onboardedPerms", false)) {
-            Alerts.prefs(this).edit().putBoolean("onboardedPerms", true).apply();
+        if (!Alerts.prefs(this).getBoolean("onboardedPerms2", false)) {
+            Alerts.prefs(this).edit().putBoolean("onboardedPerms2", true).apply();
             askStartupPermissions();
         } else {
             getAddressThenLaunch();
         }
     }
 
-    /** First launch: ask for notifications and location together — each a single tap, no digging in settings. */
+    /** Ask for notifications and "while using" location together — each a single tap, no settings. */
     private void askStartupPermissions() {
         java.util.ArrayList<String> ask = new java.util.ArrayList<>();
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
@@ -52,31 +55,32 @@ public class LauncherActivity extends com.google.androidbrowserhelper.trusted.La
             ask.add(Manifest.permission.ACCESS_FINE_LOCATION);
             ask.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         }
-        if (ask.isEmpty()) { afterForeground(); return; }
+        if (ask.isEmpty()) { askBattery(); return; }
         requestPermissions(ask.toArray(new String[0]), ASK_START);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
-        if (requestCode == ASK_START) afterForeground();
-        else if (requestCode == ASK_BG) getAddressThenLaunch();
+        if (requestCode == ASK_START) askBattery();
     }
 
-    /** Location granted while-using: now ask for "Allow all the time" so the route keeps recording with the app closed. */
-    private void afterForeground() {
-        if (Tracker.hasLocation(this) && !Tracker.hasBackground(this) && Build.VERSION.SDK_INT >= 29) {
-            CharSequence label = Build.VERSION.SDK_INT >= 30 ? getPackageManager().getBackgroundPermissionOptionLabel() : getString(R.string.allowAllTime);
-            new AlertDialog.Builder(this, DIALOG_THEME)
-                    .setTitle(R.string.allowAllTimeTitle)
-                    .setMessage(getString(R.string.allowAllTimeText, label))
-                    .setCancelable(false)
-                    .setPositiveButton(R.string.next, (x, y) -> requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, ASK_BG))
-                    .setNegativeButton(R.string.notNow, (x, y) -> getAddressThenLaunch())
-                    .show();
-        } else {
-            getAddressThenLaunch();
-        }
+    /** One system dialog ("Allow TileTrack to run in the background?") — a single tap, not a settings screen. */
+    private void askBattery() {
+        try {
+            PowerManager pm = getSystemService(PowerManager.class);
+            if (Build.VERSION.SDK_INT >= 23 && pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
+                startActivityForResult(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName())), REQ_BATTERY);
+                return;
+            }
+        } catch (Exception ignored) { }
+        getAddressThenLaunch();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_BATTERY) getAddressThenLaunch();
     }
 
     private void getAddressThenLaunch() {

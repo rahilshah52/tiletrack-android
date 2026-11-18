@@ -32,7 +32,7 @@ public class TrackActivity extends Activity {
     }
 
     private void stepLocation() {
-        if (Tracker.hasLocation(this)) { stepBackground(); return; }
+        if (Tracker.hasLocation(this)) { stepBattery(); return; }
         new AlertDialog.Builder(this, THEME)
                 .setTitle(R.string.allowLocationTitle)
                 .setMessage(R.string.allowLocationText)
@@ -71,7 +71,7 @@ public class TrackActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
-        if (requestCode == ASK_FG) { if (Tracker.hasLocation(this)) stepBackground(); else done(); }
+        if (requestCode == ASK_FG) { if (Tracker.hasLocation(this)) stepBattery(); else done(); }
         else if (requestCode == ASK_BG) stepBattery();
     }
 
